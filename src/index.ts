@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import userRoutes from './routes/users';
 import taxRoute from './routes/tax';
 import benefitTypeRoutes from './routes/benefitTypes';
+import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
 
@@ -25,6 +26,8 @@ app.get('/health-test', (req: Request, res: Response) => {
     res.status(500).send('Error')
   }
 })
+
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
