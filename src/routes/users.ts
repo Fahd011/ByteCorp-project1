@@ -13,6 +13,144 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Fetch one user by user id
+router.get('/:id', async(req: Request, res: Response) => {
+  const userId = parseInt(req.params.id);
+
+  if (isNaN(userId)) {
+    return res.status(400).json({ message: 'Invalid user ID' });
+  }
+  
+  try {
+    const result = await pool.query('SELECT * from users WHERE id = $1', [userId])
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found'});
+    }
+    
+    return res.status(200).json(result.rows[0]);
+  } catch (error){
+    console.log("Error fetching user: ", error)
+    return res.status(500).json({ message: 'Server Error' });
+  }
+})
+
+// Helper function for user salary
+const calculateNetSalary = async(userId: number) => {
+  const userResult = await pool.query(
+      'SELECT id, name, email, salary FROM users WHERE id = $1',
+      [userId]
+    );
+    if (userResult.rows.length === 0) {
+      throw new Error('User not found');
+    }
+
+    const user = userResult.rows[0];
+    const salary: number = parseFloat(user.salary);
+
+    // Get tax percent from tax table
+    const taxResult = await pool.query(
+      `
+      SELECT tax_percent
+      FROM tax
+      WHERE $1 BETWEEN min_salary AND max_salary
+      LIMIT 1
+      `,
+      [salary]
+    );
+    
+    if (taxResult.rows.length === 0) {
+      throw new Error('Tax slab not found');
+    }
+
+    const taxPercent: number = parseFloat(taxResult.rows[0].tax_percent);
+    const taxAmount = (salary * taxPercent) / 100;
+    const netMonthly = salary - taxAmount;
+
+    return {
+      user,
+      grossMonthly: salary,
+      taxPercent,
+      taxAmount,
+      netMonthly,
+      netAnnual: netMonthly * 12
+    };
+}
+// Fetch one user monthly salary after tax deduction
+router.get('/:id/monthly-salary', async (req: Request, res: Response) => {
+  const userId = parseInt(req.params.id);
+
+  if (isNaN(userId)) {
+    return res.status(400).json({ message: 'Invalid user ID' });
+  }
+
+  try {
+    const result = await calculateNetSalary(userId);
+    res.json({
+      user: result.user,
+      gross_monthly_salary: result.grossMonthly,
+      tax_percent: result.taxPercent,
+      tax_amount: result.taxAmount,
+      net_monthly_salary: result.netMonthly
+    });
+  } catch (err) {
+    console.error('Error calculating net salary:', err);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// Fetch one user monthly salary after tax deduction
+router.get('/:id/annual-salary', async (req: Request, res: Response) => {
+  const userId = parseInt(req.params.id);
+
+  if (isNaN(userId)) {
+    return res.status(400).json({ message: 'Invalid user ID' });
+  }
+
+  try {
+    const result = await calculateNetSalary(userId);
+    res.json({
+      user: result.user,
+      gross_annual_salary: result.grossMonthly * 12,
+      tax_percent: result.taxPercent,
+      tax_amount: result.taxAmount * 12,
+      net_annual_salary: result.netAnnual
+    });
+  } catch (err) {
+    console.error('Error calculating net salary:', err);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
+// Update user salary
+router.put('/:id/salary', async(req: Request, res: Response) => {
+  const userId = parseInt(req.params.id)
+  const { salary } = req.body;
+
+  if (isNaN(userId)) {
+    return res.status(400).json({ message: 'Invalid user ID' });
+  }
+  if (typeof salary !== 'number' || salary < 0) {
+    return res.status(400).json({ message: 'Invalid salary value' });
+  }
+  
+  try {
+    const result = await pool.query(`
+      UPDATE users SET salary = $1 
+      WHERE id = $2 
+      RETURNING id, name, email, salary`,
+      [salary, userId])
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found'});
+    }
+    
+    return res.status(200).json({message: "Salary updated Successfully", user: result.rows[0]});
+  } catch (error){
+    console.log("Error fetching user: ", error)
+    return res.status(500).json({ message: 'Server Error' });
+  }
+})
 
 router.put('/:id/benefits', async (req: Request, res: Response) => {
   const userId = parseInt(req.params.id, 10);
