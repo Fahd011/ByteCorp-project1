@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { getAllTaxSlabs, updateTaxSlab } from '../services/taxService';
+import { TaxSlab } from '../types';
 
 export const getAllTaxSlabsHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const slabs = await getAllTaxSlabs();
+    const slabs: TaxSlab[] = await getAllTaxSlabs();
     res.status(200).json(slabs);
   } catch (error) {
     console.error('Error fetching tax slabs:', error);

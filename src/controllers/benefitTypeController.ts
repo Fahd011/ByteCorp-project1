@@ -2,7 +2,6 @@ import { Request, Response, NextFunction} from 'express';
 import { updateBenefitType } from '../services/benefitTypeService';
 import { benefitTypeSchema } from '../validators/benefitTypeValidator';
 
-
 export const handleUpdateBenefitType = async (req: Request, res: Response, next: NextFunction) => {
   const id = parseInt(req.params.id, 10);
   try {

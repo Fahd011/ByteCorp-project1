@@ -7,3 +7,7 @@ export const updateUserSalarySchema = z.object({
 export const updateUserBenefitsSchema = z.object({
   benefits: z.record(z.string(), z.number().min(0)),
 });
+
+export const UserIdParamSchema = z.object({
+    id: z.string().regex(/^\d+$/).transform(Number)
+  });
