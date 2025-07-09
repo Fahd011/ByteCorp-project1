@@ -1,20 +1,21 @@
 import { Request, Response, NextFunction} from 'express';
 import { updateBenefitType } from '../services/benefitTypeService';
+import { benefitTypeSchema } from '../validators/benefitTypeValidator';
 
 
 export const handleUpdateBenefitType = async (req: Request, res: Response, next: NextFunction) => {
   const id = parseInt(req.params.id, 10);
-  const { name } = req.body;
-
-  if (isNaN(id) || typeof name !== 'string' || !name.trim()) {
-     return next({ message: 'Invalid id or name', status: 400 });
-  }
-
   try {
-    await updateBenefitType(id, name);
-    return res.status(200).json({ message: 'Benefit type updated successfully' });
-  } catch (error: any) {
+    
+    const parsedBody = benefitTypeSchema.parse(req.body);
 
+    await updateBenefitType(id, parsedBody.name);
+    return res.status(200).json({ message: 'Benefit type updated successfully' });
+
+  } catch (error: any) {
+    if (error.name === 'ZodError') {
+        return res.status(400).json({ errors: error.errors });
+      }
     // New Error Handling
     if (error.message === 'NOT_FOUND') {
         return next({ status: 404, message: 'Benefit type not found' });
