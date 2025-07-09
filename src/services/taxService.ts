@@ -1,4 +1,5 @@
 import pool from '../db/db';
+import { TaxSlab } from '../types';
 
 export const getAllTaxSlabs = async () => {
   const result = await pool.query('SELECT * FROM tax ORDER BY min_salary ASC');
@@ -11,6 +12,7 @@ export const updateTaxSlab = async (
     min_salary: number,
     max_salary: number | null,
     tax_percent: number
+    
   ) => {
     const existing = await pool.query('SELECT * FROM tax WHERE id = $1', [id]);
     if (existing.rows.length === 0) {

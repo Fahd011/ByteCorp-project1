@@ -8,10 +8,13 @@ import {
   updateUserSalary,
   updateUserBenefits
 } from '../services/userService';
+import { SalaryCalculationResult, User } from '../types';
+import { UserIdParamSchema } from '../validators/userValidator';
+import { ZodError } from 'zod';
 
 export const getAllUsersHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const users = await getAllUsers();
+    const users: User[] = await getAllUsers();
     res.json(users);
   } catch (err) {
      next(err);
@@ -19,14 +22,17 @@ export const getAllUsersHandler = async (req: Request, res: Response, next: Next
 };
 
 export const getUserByIdHandler = async (req: Request, res: Response, next: NextFunction) => {
-  const userId = parseInt(req.params.id);
-  if (isNaN(userId)) return next({ status: 400, message: 'Invalid user ID' });
-
+  
+  // if (isNaN(userId)) return next({ status: 400, message: 'Invalid user ID' });
   try {
-    const user = await getUserById(userId);
+    const { id: userId } = UserIdParamSchema.parse(req.params);
+    const user: User | null = await getUserById(userId);
     if (!user) return next({ status: 404, message: 'User not found' });
     res.json(user);
   } catch (err) {
+    if (err.name === 'ZodError') {
+      return res.status(400).json({ error: 'Invalid user ID format', details: err.errors });
+    }
     next(err);
   }
 };
@@ -36,7 +42,7 @@ export const getMonthlySalaryHandler = async (req: Request, res: Response, next:
   if (isNaN(userId)) return next({ status: 400, message: 'Invalid user ID' });
 
   try {
-    const result = await calculateNetSalary(userId);
+    const result: SalaryCalculationResult = await calculateNetSalary(userId);
     res.json({
       user: result.user,
       gross_monthly_salary: result.grossMonthly,
@@ -54,7 +60,7 @@ export const getAnnualSalaryHandler = async (req: Request, res: Response, next: 
   if (isNaN(userId)) return next({ status: 400, message: 'Invalid user ID' });
 
   try {
-    const result = await calculateNetSalary(userId);
+    const result: SalaryCalculationResult = await calculateNetSalary(userId);
     res.json({
       user: result.user,
       gross_annual_salary: result.grossMonthly * 12,
@@ -76,7 +82,7 @@ export const updateUserSalaryHandler = async (req: Request, res: Response, next:
   }
 
   try {
-    const updated = await updateUserSalary(userId, salary);
+    const updated: User = await updateUserSalary(userId, salary);
     res.status(200).json({ message: 'Salary updated successfully', user: updated });
   } catch (err) {
     next(err);
