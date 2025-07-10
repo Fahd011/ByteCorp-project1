@@ -1,11 +1,13 @@
 import { Request, Response, NextFunction} from 'express';
 import { updateBenefitType } from '../services/benefitTypeService';
 import { benefitTypeSchema } from '../validators/benefitTypeValidator';
+import { benefitTypeIdParamSchema } from '../validators/benefitTypeValidator';
+
 
 export const handleUpdateBenefitType = async (req: Request, res: Response, next: NextFunction) => {
-  const id = parseInt(req.params.id, 10);
-  try {
     
+  try {
+    const { id } = benefitTypeIdParamSchema.parse(req.params);
     const parsedBody = benefitTypeSchema.parse(req.body);
 
     await updateBenefitType(id, parsedBody.name);
@@ -23,7 +25,7 @@ export const handleUpdateBenefitType = async (req: Request, res: Response, next:
         return next({ status: 409, message: 'Benefit type name already exists' });
       }
   
-      //Passing unexpected error
+      //Passing Error
       return next(error);
   }
 };

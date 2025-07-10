@@ -38,10 +38,11 @@ export const getUserByIdHandler = async (req: Request, res: Response, next: Next
 };
 
 export const getMonthlySalaryHandler = async (req: Request, res: Response, next: NextFunction) => {
-  const userId = parseInt(req.params.id);
-  if (isNaN(userId)) return next({ status: 400, message: 'Invalid user ID' });
+   
+  
 
   try {
+    const { id: userId } = UserIdParamSchema.parse(req.params);
     const result: SalaryCalculationResult = await calculateNetSalary(userId);
     res.json({
       user: result.user,
@@ -51,15 +52,17 @@ export const getMonthlySalaryHandler = async (req: Request, res: Response, next:
       net_monthly_salary: result.netMonthly
     });
   } catch (err) {
+    if (err.name === 'ZodError') {
+      return res.status(400).json({ error: 'Invalid user ID format', details: err.errors });
+    }
      next(err);
   }
 };
 
 export const getAnnualSalaryHandler = async (req: Request, res: Response, next: NextFunction) => {
-  const userId = parseInt(req.params.id);
-  if (isNaN(userId)) return next({ status: 400, message: 'Invalid user ID' });
-
+  
   try {
+    const { id: userId } = UserIdParamSchema.parse(req.params);
     const result: SalaryCalculationResult = await calculateNetSalary(userId);
     res.json({
       user: result.user,
@@ -69,6 +72,9 @@ export const getAnnualSalaryHandler = async (req: Request, res: Response, next: 
       net_annual_salary: result.netAnnual
     });
   } catch (err) {
+    if (err.name === 'ZodError') {
+      return res.status(400).json({ error: 'Invalid user ID format', details: err.errors });
+    }
     next(err)
   }
 };

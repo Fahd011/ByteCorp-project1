@@ -16,3 +16,7 @@ export const taxSchema = z.object({
     invalid_type_error: 'percentage must be a number'
   }).nonnegative({ message: 'min_salary cannot be negative' })
 });
+
+export const TaxIdParamSchema = z.object({
+    id: z.string().regex(/^\d+$/).transform(Number)
+  });
