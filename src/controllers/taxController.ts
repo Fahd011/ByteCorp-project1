@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { getAllTaxSlabs, updateTaxSlab } from '../services/taxService';
 import { TaxSlab } from '../types';
+import { TaxIdParamSchema } from '../validators/taxValidator';
 
 export const getAllTaxSlabsHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -14,12 +15,11 @@ export const getAllTaxSlabsHandler = async (req: Request, res: Response, next: N
 
 
 export const updateTaxSlabHandler = async (req: Request, res: Response, next: NextFunction) => {
-    const id = parseInt(req.params.id, 10);
+    
     const { min_salary, max_salary, percentage } = req.body;
   
     if (
-      isNaN(id) ||
-      typeof min_salary !== 'number' ||
+        typeof min_salary !== 'number' ||
       (max_salary !== null && typeof max_salary !== 'number') ||
       typeof percentage !== 'number'
     ) {
@@ -27,10 +27,13 @@ export const updateTaxSlabHandler = async (req: Request, res: Response, next: Ne
     }
   
     try {
+      const { id } = TaxIdParamSchema.parse(req.params);
       await updateTaxSlab(id, min_salary, max_salary, percentage);
       res.status(200).json({ message: 'Tax slab updated successfully' });
     } catch (error) {
-      console.error('Error updating tax slab:', error);
+        if (error.name === 'ZodError') {
+            return res.status(400).json({ error: 'Invalid user ID format', details: error.errors });
+          }
       next(error); // Pass to error handler middleware
     }
   };
